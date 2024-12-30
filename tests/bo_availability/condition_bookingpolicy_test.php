@@ -121,7 +121,7 @@ final class condition_bookingpolicy_test extends advanced_testcase {
         $option1 = $plugingenerator->create_option($record);
 
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Book the student1.
         $this->setUser($student1);
@@ -205,7 +205,7 @@ final class condition_bookingpolicy_test extends advanced_testcase {
         $option1 = $plugingenerator->create_option($record);
 
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Book the student1.
         $this->setUser($student1);
@@ -294,7 +294,7 @@ final class condition_bookingpolicy_test extends advanced_testcase {
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
 
         // Book the first user without any problem.
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Book the student1.
         $this->setUser($student1);
@@ -380,7 +380,7 @@ final class condition_bookingpolicy_test extends advanced_testcase {
         $plugingenerator = self::getDataGenerator()->get_plugin_generator('mod_booking');
         $option1 = $plugingenerator->create_option($record);
         $settings1 = singleton_service::get_instance_of_booking_option_settings($option1->id);
-        $boinfo1 = new bo_info($settings1);
+        $boinfo1 = bo_info::get_instance($settings1);
 
         // The 2nd option in the course1.
         $record = new stdClass();
@@ -393,7 +393,7 @@ final class condition_bookingpolicy_test extends advanced_testcase {
         $record->bo_cond_previouslybooked_optionid = $option1->id;
         $option2 = $plugingenerator->create_option($record);
         $settings2 = singleton_service::get_instance_of_booking_option_settings($option2->id);
-        $boinfo2 = new bo_info($settings2);
+        $boinfo2 = bo_info::get_instance($settings2);
 
         // Book the student right away.
         $this->setUser($student1);
@@ -449,7 +449,7 @@ final class condition_bookingpolicy_test extends advanced_testcase {
         $record->bo_cond_enrolledincourse_courseids_operator = 'AND';
         $option3 = $plugingenerator->create_option($record);
         $settings3 = singleton_service::get_instance_of_booking_option_settings($option3->id);
-        $boinfo3 = new bo_info($settings3);
+        $boinfo3 = bo_info::get_instance($settings3);
 
         // Book the student1.
         $this->setUser($student1);
@@ -547,7 +547,7 @@ final class condition_bookingpolicy_test extends advanced_testcase {
         $plugingenerator = self::getDataGenerator()->get_plugin_generator('mod_booking');
         $option1 = $plugingenerator->create_option($record);
         $settings1 = singleton_service::get_instance_of_booking_option_settings($option1->id);
-        $boinfo1 = new bo_info($settings1);
+        $boinfo1 = bo_info::get_instance($settings1);
 
         // The 2nd option in the course1.
         $record = new stdClass();
@@ -563,7 +563,7 @@ final class condition_bookingpolicy_test extends advanced_testcase {
 
         $option2 = $plugingenerator->create_option($record);
         $settings2 = singleton_service::get_instance_of_booking_option_settings($option2->id);
-        $boinfo2 = new bo_info($settings2);
+        $boinfo2 = bo_info::get_instance($settings2);
 
         // The 3nd option in the course1.
         $record = new stdClass();
@@ -583,7 +583,7 @@ final class condition_bookingpolicy_test extends advanced_testcase {
 
         $option3 = $plugingenerator->create_option($record);
         $settings3 = singleton_service::get_instance_of_booking_option_settings($option3->id);
-        $boinfo3 = new bo_info($settings3);
+        $boinfo3 = bo_info::get_instance($settings3);
 
         // Book the student1.
         $this->setUser($student1);

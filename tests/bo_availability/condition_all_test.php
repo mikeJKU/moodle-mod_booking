@@ -227,7 +227,7 @@ final class condition_all_test extends advanced_testcase {
         singleton_service::destroy_booking_singleton_by_cmid($settings->cmid);
 
         // Book the first user without any problem.
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Check option availability if user is not logged yet.
         require_logout();
@@ -400,7 +400,7 @@ final class condition_all_test extends advanced_testcase {
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
         // To avoid retrieving the singleton with the wrong settings, we destroy it.
         singleton_service::destroy_booking_singleton_by_cmid($settings->cmid);
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Try to book option1 by the student1 - blocked.
         $this->setUser($student1);
@@ -553,7 +553,7 @@ final class condition_all_test extends advanced_testcase {
         $option1 = $plugingenerator->create_option($record);
 
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Student one should see the price no price -> blocked.
         $this->setUser($student1);
@@ -770,7 +770,7 @@ final class condition_all_test extends advanced_testcase {
         singleton_service::destroy_booking_singleton_by_cmid($settings->cmid);
 
         // Book the first user without any problem.
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Check option availability if user is not logged yet.
         require_logout();
@@ -947,7 +947,7 @@ final class condition_all_test extends advanced_testcase {
         $option1 = $plugingenerator->create_option($record);
 
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Try to book student1 NOT - allowed.
         $this->setUser($student1);
@@ -1061,7 +1061,7 @@ final class condition_all_test extends advanced_testcase {
         singleton_service::destroy_booking_singleton_by_cmid($settings->cmid);
 
         // Book the first user without any problem.
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Book the student right away.
         $this->setUser($student1);
@@ -1159,7 +1159,7 @@ final class condition_all_test extends advanced_testcase {
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
 
         // Book the first user without any problem.
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Book the student right away.
         $this->setUser($student1);
@@ -1238,7 +1238,7 @@ final class condition_all_test extends advanced_testcase {
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
 
         // Book the first user without any problem.
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Book the student right away.
         $this->setUser($student1);
@@ -1336,7 +1336,7 @@ final class condition_all_test extends advanced_testcase {
         singleton_service::destroy_booking_singleton_by_cmid($settings->cmid);
 
         // Book the first user without any problem.
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
 
         // Check option availability if user is not logged yet.
         require_logout();
@@ -1546,7 +1546,7 @@ final class condition_all_test extends advanced_testcase {
         $settings1 = singleton_service::get_instance_of_booking_option_settings($option1->id);
         $optionobj1 = singleton_service::get_instance_of_booking_option($settings1->cmid, $settings1->id);
 
-        $boinfo1 = new bo_info($settings1);
+        $boinfo1 = bo_info::get_instance($settings1);
 
         // Book the student2.
         $this->setUser($student2);
@@ -1666,7 +1666,7 @@ final class condition_all_test extends advanced_testcase {
         $this->assertEquals($price["price"], 100);
 
         // Book the first user without any problem.
-        $boinfo1 = new bo_info($settings1);
+        $boinfo1 = bo_info::get_instance($settings1);
 
         // Book the student1 right away.
         $this->setUser($student1);
@@ -1795,10 +1795,10 @@ final class condition_all_test extends advanced_testcase {
         $settings2 = singleton_service::get_instance_of_booking_option_settings($option2->id);
         $settings3 = singleton_service::get_instance_of_booking_option_settings($option3->id);
         $settings4 = singleton_service::get_instance_of_booking_option_settings($option4->id);
-        $boinfo1 = new bo_info($settings1);
-        $boinfo2 = new bo_info($settings2);
-        $boinfo3 = new bo_info($settings3);
-        $boinfo4 = new bo_info($settings4);
+        $boinfo1 = bo_info::get_instance($settings1);
+        $boinfo2 = bo_info::get_instance($settings2);
+        $boinfo3 = bo_info::get_instance($settings3);
+        $boinfo4 = bo_info::get_instance($settings4);
 
         // Book user to first option.
         $this->setUser($student1);
@@ -1934,11 +1934,11 @@ final class condition_all_test extends advanced_testcase {
         $settings3 = singleton_service::get_instance_of_booking_option_settings($option3->id);
         $settings4 = singleton_service::get_instance_of_booking_option_settings($option4->id);
         $settings5 = singleton_service::get_instance_of_booking_option_settings($option5->id);
-        $boinfo1 = new bo_info($settings1);
-        $boinfo2 = new bo_info($settings2);
-        $boinfo3 = new bo_info($settings3);
-        $boinfo4 = new bo_info($settings4);
-        $boinfo5 = new bo_info($settings5);
+        $boinfo1 = bo_info::get_instance($settings1);
+        $boinfo2 = bo_info::get_instance($settings2);
+        $boinfo3 = bo_info::get_instance($settings3);
+        $boinfo4 = bo_info::get_instance($settings4);
+        $boinfo5 = bo_info::get_instance($settings5);
 
         // Book user to first option.
         $this->setUser($student1);

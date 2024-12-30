@@ -852,7 +852,7 @@ final class rules_test extends advanced_testcase {
 
         // Book students via waitinglist.
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
         $option = singleton_service::get_instance_of_booking_option($settings->cmid, $settings->id);
 
         // Book the student1 right away.
@@ -1003,7 +1003,7 @@ final class rules_test extends advanced_testcase {
         singleton_service::destroy_booking_option_singleton($option1->id);
 
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
         $option = singleton_service::get_instance_of_booking_option($settings->cmid, $settings->id);
 
         // Create a booking option answer - book student2.
@@ -1495,7 +1495,7 @@ final class rules_test extends advanced_testcase {
         singleton_service::destroy_booking_option_singleton($option1->id);
 
         $settings = singleton_service::get_instance_of_booking_option_settings($option1->id);
-        $boinfo = new bo_info($settings);
+        $boinfo = bo_info::get_instance($settings);
         $option = singleton_service::get_instance_of_booking_option($settings->cmid, $settings->id);
 
         // Create a booking option answer - book student2.
