@@ -111,7 +111,7 @@ class askforconfirmation implements bo_condition {
             && (!empty($settings->waitforconfirmation)
             || (!empty($settings->jsonobject->useprice))
                 // Free spots on waitinglist given.
-                && $settings->maxoverbooking > booking_answers::count_places($bookinganswer->usersonwaitinglist)
+                && $settings->maxoverbooking > booking_answers::count_places($bookinganswer->get_usersonwaitinglist())
                 && (
                         (
                             // Fully booked.

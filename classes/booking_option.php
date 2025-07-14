@@ -403,7 +403,7 @@ class booking_option {
      */
     public function get_all_users() {
         $bookinganswers = singleton_service::get_instance_of_booking_answers($this->settings);
-        return $bookinganswers->users;
+        return $bookinganswers->get_users();
     }
 
     /**
@@ -413,7 +413,7 @@ class booking_option {
      */
     public function get_all_users_on_waitinglist(): array {
         $bookinganswers = singleton_service::get_instance_of_booking_answers($this->settings);
-        return $bookinganswers->usersonwaitinglist;
+        return $bookinganswers->get_usersonwaitinglist();
     }
 
     /**
@@ -423,7 +423,7 @@ class booking_option {
      */
     public function get_all_users_booked() {
         $bookinganswers = singleton_service::get_instance_of_booking_answers($this->settings);
-        return $bookinganswers->usersonlist;
+        return $bookinganswers->get_usersonlist();
     }
 
     /**
@@ -642,8 +642,9 @@ class booking_option {
         $options = $booking->get_all_options();
         foreach ($options as $option) {
             $answers = booking_answers::get_instance_from_optionid($option->id);
-            if (!empty($answers->users)) {
-                foreach ($answers->users as $user) {
+            $answersusers = $answers->get_users();
+            if (!empty($answersusers)) {
+                foreach ($answersusers as $user) {
                     if ((int)$user->completed === 1) {
                         $todelete[] = $user->id;
                     }
@@ -753,7 +754,8 @@ class booking_option {
                         ['userid' => $result->userid, 'optionid' => $result->optionid]
                     );
                     $ba = singleton_service::get_instance_of_booking_answers($optionsettings);
-                    $useranswer = $ba->users[$userid];
+                    $answersusers = $ba->get_users();
+                    $useranswer = $answersusers[$userid];
                     $status = self::status_bookinganswer_deleted($useranswer);
                     // Make sure to log this operation into the booking_history table.
                     self::booking_history_insert($status, $result->id, $result->optionid, $result->bookingid, $userid);
@@ -937,15 +939,15 @@ class booking_option {
         // If there is no waiting list, we do not do anything!
         if ($settings->limitanswers && !empty($settings->maxanswers)) {
             // 1. Update, enrol and inform users who have switched from the waiting list to status "booked".
-            $usersonwaitinglist = array_replace([], $ba->usersonwaitinglist);
+            $usersonwaitinglist = array_replace([], $ba->get_usersonwaitinglist());
             $noofuserstobook =
                 $settings->maxanswers
-                - booking_answers::count_places($ba->usersonlist)
-                - booking_answers::count_places($ba->usersreserved);
+                - booking_answers::count_places($ba->get_usersonlist())
+                - booking_answers::count_places($ba->get_usersreserved());
 
             // We want to enrol people who have been waiting longer first.
             usort($usersonwaitinglist, fn($a, $b) => $a->timemodified < $b->timemodified ? -1 : 1);
-            if ($noofuserstobook > 0 && !empty($ba->usersonwaitinglist)) {
+            if ($noofuserstobook > 0 && !empty($ba->get_usersonwaitinglist())) {
                 // We delete the booking answers cache - because settings (limits, etc.) could be changed!
                 self::purge_cache_for_answers($this->optionid);
 
@@ -989,7 +991,7 @@ class booking_option {
             }
 
             // 2. Update and inform users who have been put on the waiting list because of changed limits.
-            $usersonlist = array_merge($ba->usersonlist, $ba->usersreserved);
+            $usersonlist = array_merge($ba->get_usersonlist(), $ba->get_usersreserved());
             usort($usersonlist, fn($a, $b) => $a->timemodified < $b->timemodified ? -1 : 1);
             // We delete the booking answers cache - because settings (limits, etc.) could be changed!
             self::purge_cache_for_answers($this->optionid);
@@ -1060,7 +1062,7 @@ class booking_option {
             }
         } else {
             // If option was set to unlimited, we book all users that have been on the waiting list and inform them.
-            foreach ($ba->usersonwaitinglist as $currentanswer) {
+            foreach ($ba->get_usersonwaitinglist() as $currentanswer) {
                 $user = singleton_service::get_instance_of_user($currentanswer->userid);
 
                 // If the booking option has a price, we don't sync waitinglist.
@@ -1220,9 +1222,10 @@ class booking_option {
         }
 
         $bookinganswers = singleton_service::get_instance_of_booking_answers($this->settings);
+        $answersusers = $bookinganswers->get_users();
 
         // Handling of waitinglist.
-        if (isset($bookinganswers->users[$user->id]) && ($currentanswer = $bookinganswers->users[$user->id])) {
+        if (isset($answersusers[$user->id]) && ($currentanswer = $answersusers[$user->id])) {
             switch ($currentanswer->waitinglist) {
                 case MOD_BOOKING_STATUSPARAM_DELETED:
                     break;
@@ -1458,7 +1461,7 @@ class booking_option {
 
         // We have to get all the records of the user, there might be more than one.
         $currentanswers = null;
-        foreach ($ba->answers as $answer) {
+        foreach ($ba->get_answers() as $answer) {
             if (
                 $answer->optionid == $this->settings->id
                     && $answer->userid == $user->id
@@ -1555,17 +1558,19 @@ class booking_option {
 
         $other = [];
         $ba = singleton_service::get_instance_of_booking_answers($this->settings);
-
-        if (isset($ba->usersonlist[$user->id])) {
-            $answer = $ba->usersonlist[$user->id];
+        $usersonlist = $ba->get_usersonlist();
+        if (isset($usersonlist[$user->id])) {
+            $answer = $usersonlist[$user->id];
             $other['baid'] = $answer->baid;
             $other['json'] = $answer->json ?? '';
         }
 
+        $answers = $ba->get_answers();
+
         if (
             !empty($ba)
             && !empty($answer->baid)
-            && isset($ba->answers[$answer->baid])
+            && isset($answers[$answer->baid])
             && enrollink::enroluseraction_allows_enrolment($ba, $answer->baid)
         ) {
             $this->enrol_user_coursestart($user->id);
@@ -2348,6 +2353,7 @@ class booking_option {
 
         $settings = singleton_service::get_instance_of_booking_option_settings($this->optionid);
         $bookinganswer = singleton_service::get_instance_of_booking_answers($settings);
+        $answersusers = $bookinganswer->get_users();
 
         // We get the booking information of a specific user.
         $bookingstatus = $bookinganswer->return_all_booking_information($userid);
@@ -2364,7 +2370,7 @@ class booking_option {
                             || empty($settings->jsonobject->useprice)
                             )
                         ||
-                            isset($bookinganswer->users[$userid])
+                            isset($answersusers[$userid])
                         )
                         || $confirmstatus == MOD_BOOKING_BO_SUBMIT_STATUS_AUTOENROL
                     )
@@ -2499,8 +2505,9 @@ class booking_option {
         $suser = null;
 
         $bookinganswers = singleton_service::get_instance_of_booking_answers($this->settings);
+        $usersonlist = $bookinganswers->get_usersonlist();
 
-        foreach ($bookinganswers->usersonlist as $key => $value) {
+        foreach ($usersonlist as $key => $value) {
             if ($value->userid == $userid) {
                 $suser = $key;
                 break;
@@ -2511,7 +2518,7 @@ class booking_option {
             return;
         }
 
-        if ($bookinganswers->usersonlist[$suser]->completed == 0) {
+        if ($usersonlist[$suser]->completed == 0) {
             $userdata = $DB->get_record(
                 'booking_answers',
                 ['optionid' => $this->optionid, 'userid' => $userid, 'waitinglist' => MOD_BOOKING_STATUSPARAM_BOOKED]
@@ -2897,8 +2904,9 @@ class booking_option {
             // Also make sure that teacher reminders won't be send to booked users.
             $settings = singleton_service::get_instance_of_booking_option_settings($this->optionid);
             $answers = singleton_service::get_instance_of_booking_answers($settings);
-            if (!empty($answers->usersonlist) && $messageparam !== MOD_BOOKING_MSGPARAM_REMINDER_TEACHER) {
-                foreach ($answers->usersonlist as $currentuser) {
+            $usersonlist = $answers->get_usersonlist();
+            if (!empty($usersonlist) && $messageparam !== MOD_BOOKING_MSGPARAM_REMINDER_TEACHER) {
+                foreach ($usersonlist as $currentuser) {
                     $tmpuser = new stdClass();
                     $tmpuser->id = $currentuser->userid;
                     $allusers[] = $tmpuser;
@@ -3835,7 +3843,7 @@ class booking_option {
 
         $settings = singleton_service::get_instance_of_booking_option_settings($optionid);
         $answers = singleton_service::get_instance_of_booking_answers($settings);
-        $bookedusers = $answers->usersonlist;
+        $bookedusers = $answers->get_usersonlist();
 
         // Use the booking option title as subject.
         $subject = str_replace(' ', '%20', $settings->get_title_with_prefix());
@@ -4196,7 +4204,7 @@ class booking_option {
         // Make sure, users are enroled to booking option when course is added after users already booked.
         $bo = singleton_service::get_instance_of_booking_option($cmid, $newoption->id);
         $ba = singleton_service::get_instance_of_booking_answers($bo->settings);
-        foreach ($ba->usersonlist as $bookeduser) {
+        foreach ($ba->get_usersonlist() as $bookeduser) {
             $bo->enrol_user_coursestart($bookeduser->id);
         }
 

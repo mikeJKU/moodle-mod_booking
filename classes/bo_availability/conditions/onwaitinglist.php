@@ -105,10 +105,11 @@ class onwaitinglist implements bo_condition {
         if (!isset($bookinginformation['onwaitinglist'])) {
             $isavailable = true;
         } else if (!empty($settings->jsonobject->useprice)) {
+            $usersonwaitinglist = $bookinganswer->get_usersonwaitinglist();
             // If user is confirmed, we don't block.
-            $ba = $bookinganswer->usersonwaitinglist[$userid];
+            $ba = $usersonwaitinglist[$userid];
 
-            $firstonlist = self::is_first_on_waitinglist($userid, $bookinganswer->usersonwaitinglist);
+            $firstonlist = self::is_first_on_waitinglist($userid, $usersonwaitinglist);
 
             if (
                 ($bookinginformation['onwaitinglist']['fullybooked'] === false)
