@@ -1602,6 +1602,7 @@ $string['movedbookinghistory'] = 'The booking option has been moved from the boo
 $string['moveoption'] = 'Move booking option';
 $string['moveoption_help'] = 'Move booking option to different booking instance';
 $string['moveoptionto'] = 'Move booking option to other booking instance';
+$string['multiplebookings'] = 'Multiple bookings';
 $string['multiselect'] = 'Multiple selection';
 $string['mustchooseone'] = 'You must choose an option before saving. Nothing was saved.';
 $string['mustcombine'] = 'Necessary booking options';

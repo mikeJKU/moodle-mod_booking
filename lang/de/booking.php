@@ -1602,6 +1602,7 @@ $string['movedbookinghistory'] = 'Die Buchungsoption wurde von der Buchung mit d
 $string['moveoption'] = 'Option verschieben';
 $string['moveoption_help'] = 'Option in eine andere Buchungsaktivität verschieben';
 $string['moveoptionto'] = 'Buchungsoption in andere Buchungsinstanz verschieben';
+$string['multiplebookings'] = 'Mehrfache Buchungen';
 $string['mustchooseone'] = 'Sie müssen eine Option auswählen';
 $string['mustcombine'] = 'Notwendige Buchungsoptionen';
 $string['mustcombine_help'] = 'Buchungsoptionen mit denen diese Buchungsoption kombiniert werden muss';
