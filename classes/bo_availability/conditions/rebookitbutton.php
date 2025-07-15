@@ -15,21 +15,25 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Already booked condition (item has been booked).
+ * Base class for a single booking option availability condition.
+ *
+ * All bo condition types must extend this class.
  *
  * @package mod_booking
  * @copyright 2022 Wunderbyte GmbH
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_booking\bo_availability\conditions;
+ namespace mod_booking\bo_availability\conditions;
 
 use mod_booking\bo_availability\bo_condition;
 use mod_booking\bo_availability\bo_info;
+use mod_booking\booking_bookit;
 use mod_booking\booking_option_settings;
-use mod_booking\local\modechecker;
+use mod_booking\output\bookingoption_description;
+use mod_booking\output\bookit_button;
+use mod_booking\price;
 use mod_booking\singleton_service;
-use moodle_url;
 use MoodleQuickForm;
 
 defined('MOODLE_INTERNAL') || die();
@@ -37,18 +41,20 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/mod/booking/lib.php');
 
 /**
- * Base class for a single bo availability condition.
+ * This is the base booking condition. It is actually used to show the bookit button.
+ *
+ * It will always return false, because its the last check in the chain of booking conditions.
+ * We use this to have a clean logic of how depticting the book it button.
  *
  * All bo condition types must extend this class.
- *
  *
  * @package mod_booking
  * @copyright 2022 Wunderbyte GmbH
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class alreadybooked implements bo_condition {
+class rebookitbutton implements bo_condition {
     /** @var int $id Standard Conditions have hardcoded ids. */
-    public $id = MOD_BOOKING_BO_COND_ALREADYBOOKED;
+    public $id = MOD_BOOKING_BO_COND_REBOOKITBUTTON;
 
     /** @var bool $overwrittenbybillboard Indicates if the condition can be overwritten by the billboard. */
     public $overwrittenbybillboard = false;
@@ -101,12 +107,6 @@ class alreadybooked implements bo_condition {
         // If the user is not yet booked we return true.
         if (!isset($bookinginformation['iambooked'])) {
             $isavailable = true;
-        }
-
-        // Check if multiple bookings are enabled. If enabled, this condition must be bypassed.
-        $ismultipbookingsoptionenable = $settings->jsonobject->multiplebookings ?? 0;
-        if ($ismultipbookingsoptionenable) {
-            $isavailable = true; // Will prevent this condition.
         }
 
         // If it's inversed, we inverse.
@@ -171,7 +171,7 @@ class alreadybooked implements bo_condition {
 
         $description = $this->get_description_string($isavailable, $full, $settings);
 
-        return [$isavailable, $description, MOD_BOOKING_BO_PREPAGE_NONE, MOD_BOOKING_BO_BUTTON_JUSTMYALERT];
+        return [$isavailable, $description, MOD_BOOKING_BO_PREPAGE_BOOK, MOD_BOOKING_BO_BUTTON_MYBUTTON];
     }
 
     /**
@@ -195,7 +195,55 @@ class alreadybooked implements bo_condition {
      * @return array
      */
     public function render_page(int $optionid, int $userid = 0) {
-        return [];
+
+        if (!empty($userid)) {
+            $user = singleton_service::get_instance_of_user($userid);
+        }
+
+        $data1 = new bookingoption_description($optionid, null, MOD_BOOKING_DESCRIPTION_WEBSITE, true, false, $user ?? null);
+
+        $template = 'mod_booking/bookingoption_description_prepagemodal_bookit';
+
+        $dataarray[] = [
+            'data' => $data1->get_returnarray(),
+        ];
+
+        $templates[] = $template;
+
+        $settings = singleton_service::get_instance_of_booking_option_settings($optionid);
+
+        [$template, $data2] = booking_bookit::render_bookit_template_data($settings, $userid ?? 0, false);
+        $data2 = reset($data2);
+        $template = reset($template);
+
+        $dataarray[] = [
+            'data' => $data2->data,
+        ];
+
+        $templates[] = $template;
+
+        // Only if the option is not yet booked, we set buttontype to 1 (continue is disabled).
+        $bookinganswer = singleton_service::get_instance_of_booking_answers($settings);
+
+        // Inactive Continue Button.
+        // We don't use this functionality right now.
+        // phpcs:ignore Squiz.PHP.CommentedOutCode.Found
+        /* if ($bookinganswer->user_status($USER->id) == MOD_BOOKING_STATUSPARAM_NOTBOOKED) {
+            $buttontype = 1;
+        } else {
+            $buttontype = 0;
+        } */
+        $buttontype = 0;
+
+        $response = [
+            // phpcs:ignore Squiz.PHP.CommentedOutCode.Found
+            /* 'json' => json_encode($dataarray), */
+            'template' => implode(',', $templates),
+            'buttontype' => $buttontype, // This means that the continue button is disabled.
+            'data' => $dataarray,
+        ];
+
+        return $response;
     }
 
     /**
@@ -219,35 +267,24 @@ class alreadybooked implements bo_condition {
         bool $fullwidth = true
     ): array {
 
-        $link = '';
-        if (
-            get_config('booking', 'linktomoodlecourseonbookedbutton')
-            && !empty($settings->courseid)
-        ) {
-            $label = get_string('coursestart', 'mod_booking');
-            $url = new \moodle_url('/course/view.php', ['id' => $settings->courseid]);
-            $link = $url->out();
-        } else {
-            $label = $this->get_description_string(false, $full, $settings);
-        }
-        $classes = $link !== '' ? 'bookinglinkbutton btn btn-primary' : 'alert alert-success';
+        global $USER;
 
-        $detaildots = self::detaildots($settings, $userid);
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+        $label = $this->get_description_string(false, $full, $settings);
 
         return bo_info::render_button(
             $settings,
             $userid,
             $label,
-            $classes,
+            'btn btn-secondary mt-1 mb-1',
             false,
             $fullwidth,
             'button',
             'option',
-            true,
-            '',
-            $link,
-            'fa-play',
-            $detaildots
+            false,
+            'noforward'
         );
     }
 
@@ -259,7 +296,7 @@ class alreadybooked implements bo_condition {
      * @param booking_option_settings $settings
      * @return string
      */
-    private function get_description_string(bool $isavailable, bool $full, booking_option_settings $settings) {
+    private function get_description_string($isavailable, $full, $settings): string {
 
         if (
             !$isavailable
@@ -268,54 +305,11 @@ class alreadybooked implements bo_condition {
         ) {
             return $desc;
         }
-        if ($isavailable) {
-            $description = $full ? get_string('bocondalreadybookedfullavailable', 'mod_booking') :
-                get_string('bocondalreadybookedavailable', 'mod_booking');
-        } else {
-            $description = $full ? get_string('bocondalreadybookedfullnotavailable', 'mod_booking') :
-                get_string('bocondalreadybookednotavailable', 'mod_booking');
-        }
+
+        // In this case, we dont differentiate between availability, because when it blocks...
+        // ... it just means that it can be booked. Blocking has a different functionality here.
+        $description = get_string('bookagain', 'mod_booking');
+
         return $description;
-    }
-
-    /**
-     * Check if detaildots should be displayed and return corresponding array for template.
-     *
-     * @param booking_option_settings $settings
-     * @param int $userid
-     *
-     * @return array
-     *
-     */
-    public static function detaildots($settings, $userid): array {
-        if (
-            !get_config('booking', 'showdetaildotsnextbookedalert')
-        ) {
-            return [];
-        }
-
-        $bookondetail = new bookondetail();
-        if ($bookondetail->is_available($settings, $userid)) {
-            return [];
-        }
-        global $PAGE;
-
-        if (!modechecker::is_ajax_or_webservice_request()) {
-            $returnurl = $PAGE->url->out();
-        } else {
-            $returnurl = '/';
-        }
-
-        $url = new moodle_url("/mod/booking/optionview.php", [
-            "optionid" => (int)$settings->id,
-            "cmid" => (int)$settings->cmid,
-            "userid" => (int)$userid,
-            'returnto' => 'url',
-            'returnurl' => $returnurl,
-        ]);
-
-        return [
-            'url' => $url->out(false),
-        ];
     }
 }

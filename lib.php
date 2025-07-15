@@ -187,6 +187,7 @@ define('MOD_BOOKING_BO_COND_NOSHOPPINGCART', -60);
 define('MOD_BOOKING_BO_COND_PRICEISSET', -70);
 
 define('MOD_BOOKING_BO_COND_CONFIRMBOOKIT', -80);
+define('MOD_BOOKING_BO_COND_REBOOKITBUTTON', -87);
 define('MOD_BOOKING_BO_COND_BOOKITBUTTON', -90); // This is only used to show the book it button.
 define('MOD_BOOKING_BO_COND_CONFIRMATION', -100); // This is the last page after booking.
 
