@@ -1226,16 +1226,28 @@ class booking_option {
 
         // Handling of waitinglist.
         if (isset($answersusers[$user->id]) && ($currentanswer = $answersusers[$user->id])) {
+            $currentanswerid = $currentanswer->baid;
+            $timecreated = $currentanswer->timecreated;
+
             switch ($currentanswer->waitinglist) {
                 case MOD_BOOKING_STATUSPARAM_DELETED:
                     break;
                 case MOD_BOOKING_STATUSPARAM_BOOKED:
+                    // Check if multiple bookings are enabled.
+                    $ismultipbookingsoptionenable = self::get_value_of_json_by_key($this->id, 'multiplebookings');
                     // If we come from sync_waiting_list it might be possible that someone is moved from booked to waiting list.
-                    // If we are already booked, we don't do anything.
-                    if ($waitinglist == MOD_BOOKING_STATUSPARAM_BOOKED) {
+                    // If we are already booked and multiple bookings is not enabled, we don't do anything.
+                    if ($waitinglist == MOD_BOOKING_STATUSPARAM_BOOKED && ! $ismultipbookingsoptionenable) {
                         return true;
                     }
                     // Else, we might move from booked to waitinglist, we just continue.
+
+                    if ($ismultipbookingsoptionenable) {
+                        // If user is rebooking the option, we need to insert a new record.
+                        // So to prevent any record update in booking_answerts table, we need to set record id to null.
+                        $currentanswerid = null;
+                        $timecreated = null;
+                    }
                     break;
                 case MOD_BOOKING_STATUSPARAM_RESERVED:
                     // If the old and the new value is reserved, we just return true, we don't need to do anything.
@@ -1252,8 +1264,6 @@ class booking_option {
                     }
                     break;
             }
-            $currentanswerid = $currentanswer->baid;
-            $timecreated = $currentanswer->timecreated;
         } else {
             $currentanswerid = null;
             $timecreated = null;
