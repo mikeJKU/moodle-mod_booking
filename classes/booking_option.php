@@ -562,7 +562,14 @@ class booking_option {
         $params = ["optionid" => $this->optionid];
 
         // Note: mod/booking:choose may have been revoked after the user has booked: not count them as booked.
-        $allanswers = $DB->get_records_sql($sql, $params);
+        $recordset = $DB->get_recordset_sql($sql, $params);
+        $allanswers = [];
+        foreach ($recordset as $record) {
+            if (!isset($allanswers[$record->id])) {
+                $allanswers[$record->id] = $record; // $record->id is u.id
+            }
+        }
+        $recordset->close();
 
         // If $bookanyone is true, we do not check for enrolment.
         $this->bookedusers = $bookanyone ? $allanswers : array_intersect_key($allanswers, $this->booking->canbookusers);
@@ -1273,10 +1280,14 @@ class booking_option {
         if (
             ($waitinglist === MOD_BOOKING_STATUSPARAM_BOOKED)
             && ($status != MOD_BOOKING_BO_SUBMIT_STATUS_AUTOENROL && !empty($this->settings->waitforconfirmation))
-            || (($status === MOD_BOOKING_BO_SUBMIT_STATUS_AUTOENROL)
-            && enrollink::enrolmentstatus_waitinglist($this->settings))
+            || (($status === MOD_BOOKING_BO_SUBMIT_STATUS_AUTOENROL) && enrollink::enrolmentstatus_waitinglist($this->settings))
         ) {
             $waitinglist = MOD_BOOKING_STATUSPARAM_WAITINGLIST;
+
+            // When admin confirms a user user in waiting list, this condition will be met.
+            if (!is_null($currentanswerid)) {
+                $waitinglist = MOD_BOOKING_STATUSPARAM_BOOKED;
+            }
 
             $event = bookinganswer_waitingforconfirmation::create([
                 'objectid' => $this->optionid,
