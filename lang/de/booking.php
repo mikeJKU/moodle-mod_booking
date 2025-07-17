@@ -1674,6 +1674,7 @@ $string['noselection'] = 'Keine Auswahl';
 $string['nosemester'] = 'Kein Semester gewählt';
 $string['nosubscribers'] = 'Keine Trainer:innen zugewiesen!';
 $string['notallbooked'] = 'Folgende Nutzer:innen konnten aufgrund nicht mehr verfügbarer Plätze oder durch das Überschreiten des vorgegebenen Buchungslimits pro Nutzer:in nicht gebucht werden: {$a}';
+$string['notallowedtoconfirm'] = "Keine Berechtigung zu buchen";
 $string['notanswered'] = 'Nicht beantwortet';
 $string['notateacher'] = 'Die ausgewählte Person unterrichtet keine buchbaren Kurse und kann daher nicht angezeigt werden.';
 $string['notbookable'] = "Nicht buchbar";

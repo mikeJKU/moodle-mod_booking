@@ -282,7 +282,7 @@ class manageusers_table extends wunderbyte_table {
         if (!$allowedtoconfirm) {
             return [
                 'success' => 0,
-                'message' => $returnmessage,
+                'message' => $returnmessage ?? get_string('notallowedtoconfirm', 'mod_booking'),
                 'reload' => $reload ? 1 : 0,
             ];
         }
