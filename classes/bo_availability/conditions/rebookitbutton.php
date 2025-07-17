@@ -169,7 +169,7 @@ class rebookitbutton implements bo_condition {
 
         $isavailable = $this->is_available($settings, $userid, $not);
 
-        $description = $this->get_description_string($isavailable, $full, $settings);
+        $description = $this->get_description_string($isavailable, $full, $settings, $userid);
 
         return [$isavailable, $description, MOD_BOOKING_BO_PREPAGE_BOOK, MOD_BOOKING_BO_BUTTON_MYBUTTON];
     }
@@ -272,7 +272,7 @@ class rebookitbutton implements bo_condition {
         if ($userid === null) {
             $userid = $USER->id;
         }
-        $label = $this->get_description_string(false, $full, $settings);
+        $label = $this->get_description_string(false, $full, $settings, $userid);
 
         return bo_info::render_button(
             $settings,
@@ -296,7 +296,7 @@ class rebookitbutton implements bo_condition {
      * @param booking_option_settings $settings
      * @return string
      */
-    private function get_description_string($isavailable, $full, $settings): string {
+    private function get_description_string($isavailable, $full, $settings, $userid = null): string {
 
         if (
             !$isavailable
@@ -309,6 +309,24 @@ class rebookitbutton implements bo_condition {
         // In this case, we dont differentiate between availability, because when it blocks...
         // ... it just means that it can be booked. Blocking has a different functionality here.
         $description = get_string('bookagain', 'mod_booking');
+
+
+        // Check if multiple bookings are enabled.
+        $ismultipbookingsoptionenable = $settings->jsonobject->multiplebookings ?? 0;
+        if ($ismultipbookingsoptionenable & !empty($userid)) {
+            $answers = singleton_service::get_instance_of_booking_answers($settings)->get_answers();
+            $useranswers = 0;
+            foreach ($answers as $answer) {
+                if ($answer->userid == $userid) {
+                    $useranswers++;
+                }
+            }
+            if ($useranswers == 1) {
+                $description .= get_string('bookedpreviousely', 'mod_booking');
+            } else {
+                $description .= get_string('bookedpreviouselyxtimes', 'mod_booking', $useranswers);
+            }
+        }
 
         return $description;
     }

@@ -389,6 +389,8 @@ $string['bookanyonewarning'] = 'Be careful: You can now book any users you want.
 $string['booked'] = 'Booked';
 $string['bookeddeleted'] = 'Booking removed';
 $string['bookedpast'] = 'Booked (course finished)';
+$string['bookedpreviousely'] = ' | Previousely booked';
+$string['bookedpreviouselyxtimes'] = ' | Previousely booked {$a} times';
 $string['bookedteachersshowemails'] = 'Show teacher\'s email addresses to booked users';
 $string['bookedteachersshowemails_desc'] = 'If you activate this setting, booked users can see
 the e-mail address of their teacher.';

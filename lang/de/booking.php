@@ -382,6 +382,8 @@ $string['bookanyonewarning'] = 'Achtung: Sie können nun beliebige Nutzer:innen 
 $string['booked'] = 'Gebucht';
 $string['bookeddeleted'] = 'Buchung gelöscht';
 $string['bookedpast'] = 'Gebucht (Kurs wurde bereits beendet)';
+$string['bookedpreviousely'] = ' | Bereits gebucht';
+$string['bookedpreviouselyxtimes'] = ' | Bereits {$a} Mal gebucht';
 $string['bookedteachersshowemails'] = 'E-Mail-Adressen von Trainer:innen, bei denen gebucht wurde, anzeigen';
 $string['bookedteachersshowemails_desc'] = 'Wenn Sie diese Einstellung aktivieren, dann werden bereits gebuchten Benutzer:innen
 die E-Mail-Adressen ihrer Trainer:innen angezeigt.';
