@@ -1224,6 +1224,9 @@ class booking_option {
         $bookinganswers = singleton_service::get_instance_of_booking_answers($this->settings);
         $answersusers = $bookinganswers->get_users();
 
+        $currentanswerid = null;
+        $timecreated = null;
+
         // Handling of waitinglist.
         if (isset($answersusers[$user->id]) && ($currentanswer = $answersusers[$user->id])) {
             $currentanswerid = $currentanswer->baid;
@@ -1264,27 +1267,24 @@ class booking_option {
                     }
                     break;
             }
-        } else {
-            $currentanswerid = null;
-            $timecreated = null;
+        }
 
-            // Should users who want to book be parked in the waitinglist waiting for confirmation.
-            if (
-                ($waitinglist === MOD_BOOKING_STATUSPARAM_BOOKED)
-                && ($status != MOD_BOOKING_BO_SUBMIT_STATUS_AUTOENROL && !empty($this->settings->waitforconfirmation))
-                || (($status === MOD_BOOKING_BO_SUBMIT_STATUS_AUTOENROL)
-                && enrollink::enrolmentstatus_waitinglist($this->settings))
-            ) {
-                $waitinglist = MOD_BOOKING_STATUSPARAM_WAITINGLIST;
+        // Should users who want to book be parked in the waitinglist waiting for confirmation.
+        if (
+            ($waitinglist === MOD_BOOKING_STATUSPARAM_BOOKED)
+            && ($status != MOD_BOOKING_BO_SUBMIT_STATUS_AUTOENROL && !empty($this->settings->waitforconfirmation))
+            || (($status === MOD_BOOKING_BO_SUBMIT_STATUS_AUTOENROL)
+            && enrollink::enrolmentstatus_waitinglist($this->settings))
+        ) {
+            $waitinglist = MOD_BOOKING_STATUSPARAM_WAITINGLIST;
 
-                $event = bookinganswer_waitingforconfirmation::create([
-                    'objectid' => $this->optionid,
-                    'context' => context_module::instance($this->cmid),
-                    'userid' => $USER->id, // The user triggered the action.
-                    'relateduserid' => $user->id, // Affected user - the user who is waiting for confirmation.
-                ]);
-                $event->trigger(); // This will trigger the observer function.
-            }
+            $event = bookinganswer_waitingforconfirmation::create([
+                'objectid' => $this->optionid,
+                'context' => context_module::instance($this->cmid),
+                'userid' => $USER->id, // The user triggered the action.
+                'relateduserid' => $user->id, // Affected user - the user who is waiting for confirmation.
+            ]);
+            $event->trigger(); // This will trigger the observer function.
         }
 
         // Use the waitinglist as status for booking history.

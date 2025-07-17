@@ -374,11 +374,19 @@ class booking_answers {
             $returnarray['minanswers'] = $this->bookingoptionsettings->minanswers;
         }
 
-        // First check list of booked users.
+        // As we have m ultiple bookings functionality,
+        // we need to check if user has records in any types of booking (booked, reserved, waitinglist).
+
+        // Consider user has no records for this option in booking_answers table.
+        // When we found any record we change it to true.
+        $hasuseranybookingrecord = false;
+
+        // Check list of booked users.
         if (
             isset($this->usersonlist[$userid])
             && $this->usersonlist[$userid]->waitinglist == MOD_BOOKING_STATUSPARAM_BOOKED
         ) {
+            $hasuseranybookingrecord = true;
             $answer = $this->usersonlist[$userid];
             if (!empty($answer->json)) {
                 $jsonobject = json_decode($answer->json);
@@ -389,19 +397,29 @@ class booking_answers {
             }
 
             $returnarray = ['iambooked' => $returnarray];
-        } else if (
+        }
+
+        // Check reserved list.
+        if (
             isset($this->usersreserved[$userid])
             && $this->usersreserved[$userid]->waitinglist == MOD_BOOKING_STATUSPARAM_RESERVED
         ) {
+            $hasuseranybookingrecord = true;
             $returnarray = ['iamreserved' => $returnarray];
-        } else if (
+        }
+
+        // Check waiting list.
+        if (
             isset($this->usersonwaitinglist[$userid])
             && $this->usersonwaitinglist[$userid]->waitinglist == MOD_BOOKING_STATUSPARAM_WAITINGLIST
         ) {
-            // Now check waiting list.
+            $hasuseranybookingrecord = true;
             $returnarray = ['onwaitinglist' => $returnarray];
-        } else {
-            // Else it's not booked.
+        }
+
+        // If the user does not exist in any of the lists (booked, reserved, or waiting list),
+        // then the user has no booking record for this booking option.
+        if (!$hasuseranybookingrecord) {
             $returnarray = ['notbooked' => $returnarray];
         }
 
