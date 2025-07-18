@@ -26,12 +26,14 @@
 
  namespace mod_booking\bo_availability\conditions;
 
+use context_module;
 use mod_booking\bo_availability\bo_condition;
 use mod_booking\bo_availability\bo_info;
-use mod_booking\booking_bookit;
 use mod_booking\booking_option_settings;
-use mod_booking\output\bookingoption_description;
+use mod_booking\local\modechecker;
+use mod_booking\price;
 use mod_booking\singleton_service;
+use moodle_url;
 use MoodleQuickForm;
 
 defined('MOODLE_INTERNAL') || die();
@@ -39,10 +41,9 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/mod/booking/lib.php');
 
 /**
- * This is the base booking condition. It is actually used to show the bookit button.
+ * If a price is set for the option, normal booking is not available.
  *
- * It will always return false, because its the last check in the chain of booking conditions.
- * We use this to have a clean logic of how depticting the book it button.
+ * Booking only via payment.
  *
  * All bo condition types must extend this class.
  *
@@ -50,9 +51,9 @@ require_once($CFG->dirroot . '/mod/booking/lib.php');
  * @copyright 2022 Wunderbyte GmbH
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class rebookitbutton implements bo_condition {
+class priceissetagain implements bo_condition {
     /** @var int $id Standard Conditions have hardcoded ids. */
-    public $id = MOD_BOOKING_BO_COND_REBOOKITBUTTON;
+    public $id = MOD_BOOKING_BO_COND_PRICEISSETAGAIN;
 
     /** @var bool $overwrittenbybillboard Indicates if the condition can be overwritten by the billboard. */
     public $overwrittenbybillboard = false;
@@ -94,8 +95,11 @@ class rebookitbutton implements bo_condition {
     public function is_available(booking_option_settings $settings, int $userid, bool $not = false): bool {
         global $DB;
 
-        // This is the return value. Not available to begin with.
-        $isavailable = false;
+        // If multiple booking is not enabled, then don'T use this button.
+        $ismultipbookingsoptionenable = $settings->jsonobject->multiplebookings ?? 0;
+        if (!$ismultipbookingsoptionenable) {
+            return true; // Prevent this button to be shown.
+        }
 
         // Get the booking answers for this instance.
         $bookinganswer = singleton_service::get_instance_of_booking_answers($settings);
@@ -104,7 +108,25 @@ class rebookitbutton implements bo_condition {
 
         // If the user is not yet booked we return true.
         if (!isset($bookinginformation['iambooked'])) {
-            $isavailable = true;
+            return true;
+        }
+
+        $isavailable = false;
+
+        if (!get_config('booking', 'displayemptyprice') && !empty($settings->jsonobject->useprice)) {
+            $user = singleton_service::get_instance_of_user($userid);
+            if ($user) {
+                $price = price::get_price('option', $settings->id, $user);
+                if (isset($price['price']) && empty((float) $price['price'])) {
+                    $isavailable = true;
+                }
+            }
+        }
+
+        if (!get_config('booking', 'priceisalwayson')) {
+            if (empty($settings->jsonobject->useprice)) {
+                $isavailable = true;
+            }
         }
 
         // If it's inversed, we inverse.
@@ -167,9 +189,18 @@ class rebookitbutton implements bo_condition {
 
         $isavailable = $this->is_available($settings, $userid, $not);
 
-        $description = $this->get_description_string($isavailable, $full, $settings, $userid);
+        $description = $this->get_description_string($isavailable, $full, $settings);
 
-        return [$isavailable, $description, MOD_BOOKING_BO_PREPAGE_BOOK, MOD_BOOKING_BO_BUTTON_MYBUTTON];
+        // If shopping cart is not installed, we still want to allow admins to book for others.
+        $context = context_module::instance($settings->cmid);
+        if (
+            !class_exists('local_shopping_cart\shopping_cart') &&
+            has_capability('mod/booking:bookforothers', $context)
+        ) {
+            return [$isavailable, $description, MOD_BOOKING_BO_PREPAGE_NONE, MOD_BOOKING_BO_BUTTON_MYALERT];
+        }
+
+        return [$isavailable, $description, MOD_BOOKING_BO_PREPAGE_NONE, MOD_BOOKING_BO_BUTTON_MYBUTTON];
     }
 
     /**
@@ -193,52 +224,12 @@ class rebookitbutton implements bo_condition {
      * @return array
      */
     public function render_page(int $optionid, int $userid = 0) {
-
-        if (!empty($userid)) {
-            $user = singleton_service::get_instance_of_user($userid);
-        }
-
-        $data1 = new bookingoption_description($optionid, null, MOD_BOOKING_DESCRIPTION_WEBSITE, true, false, $user ?? null);
-
-        $template = 'mod_booking/bookingoption_description_prepagemodal_bookit';
-
-        $dataarray[] = [
-            'data' => $data1->get_returnarray(),
-        ];
-
-        $templates[] = $template;
-
-        $settings = singleton_service::get_instance_of_booking_option_settings($optionid);
-
-        [$template, $data2] = booking_bookit::render_bookit_template_data($settings, $userid ?? 0, false);
-        $data2 = reset($data2);
-        $template = reset($template);
-
-        $dataarray[] = [
-            'data' => $data2->data,
-        ];
-
-        $templates[] = $template;
-
-        // Only if the option is not yet booked, we set buttontype to 1 (continue is disabled).
-        $bookinganswer = singleton_service::get_instance_of_booking_answers($settings);
-
-        // Inactive Continue Button.
-        // We don't use this functionality right now.
-        // phpcs:ignore Squiz.PHP.CommentedOutCode.Found
-        /* if ($bookinganswer->user_status($USER->id) == MOD_BOOKING_STATUSPARAM_NOTBOOKED) {
-            $buttontype = 1;
-        } else {
-            $buttontype = 0;
-        } */
-        $buttontype = 0;
-
         $response = [
+            'data' => [],
             // phpcs:ignore Squiz.PHP.CommentedOutCode.Found
-            /* 'json' => json_encode($dataarray), */
-            'template' => implode(',', $templates),
-            'buttontype' => $buttontype, // This means that the continue button is disabled.
-            'data' => $dataarray,
+            /* 'json' => '', */
+            'template' => '',
+            'buttontype' => 0, // This means that the continue button is enabled.
         ];
 
         return $response;
@@ -265,25 +256,72 @@ class rebookitbutton implements bo_condition {
         bool $fullwidth = true
     ): array {
 
-        global $USER;
+        global $USER, $PAGE;
 
-        if ($userid === null) {
-            $userid = $USER->id;
+        $userid = !empty($userid) ? $userid : $USER->id;
+
+        $settings = singleton_service::get_instance_of_booking_option_settings($settings->id);
+
+        $user = singleton_service::get_instance_of_user($userid);
+
+        $data = $settings->return_booking_option_information($user);
+
+        $bookinganswer = singleton_service::get_instance_of_booking_answers($settings);
+        $bookinginformation = $bookinganswer->return_all_booking_information($userid);
+
+        if (
+            isset($bookinginformation['notbooked']) && ($bookinginformation['notbooked']['onnotifylist']) ||
+            (isset($bookinginformation['iambooked']) && $bookinginformation['iambooked']['onnotifylist'])
+        ) {
+            $data['onlist'] = true;
         }
-        $label = $this->get_description_string(false, $full, $settings, $userid);
 
-        return bo_info::render_button(
-            $settings,
-            $userid,
-            $label,
-            'btn btn-secondary mt-1 mb-1',
-            false,
-            $fullwidth,
-            'button',
-            'option',
-            false,
-            'noforward'
-        );
+        if ($fullwidth) {
+            $data['fullwidth'] = $fullwidth;
+        }
+
+        // The book only on details page avoid js and allows booking only on the details page.
+        if (
+            get_config('booking', 'bookonlyondetailspage')
+            && !modechecker::use_special_details_page_treatment()
+        ) {
+            $returnurl = $PAGE->url->out();
+
+            // The current page is not /mod/booking/optionview.php.
+            $url = new moodle_url("/mod/booking/optionview.php", [
+                "optionid" => (int)$settings->id,
+                "cmid" => (int)$settings->cmid,
+                "userid" => (int)$userid,
+                'returnto' => 'url',
+                'returnurl' => $returnurl,
+            ]);
+            $data['link'] = $url->out(false);
+            $data['nojs'] = true;
+            $data['role'] = '';
+        }
+
+        // Check if multiple bookings are enabled.
+
+        if (!empty($userid)) {
+            $answers = singleton_service::get_instance_of_booking_answers($settings)->get_answers();
+            $useranswers = 0;
+            foreach ($answers as $answer) {
+                if ($answer->userid == $userid) {
+                    $useranswers++;
+                }
+            }
+            if ($useranswers == 1) {
+                $data['previouselybooked'] =
+                    get_string('addtocart', 'local_shopping_cart') .
+                    get_string('bookedpreviousely', 'mod_booking');
+            } else {
+                $data['previouselybooked'] =
+                    get_string('addtocart', 'local_shopping_cart') .
+                    get_string('bookedpreviouselyxtimes', 'mod_booking', $useranswers);
+            }
+        }
+
+        return ['mod_booking/bookit_price', $data];
     }
 
     /**
@@ -294,7 +332,7 @@ class rebookitbutton implements bo_condition {
      * @param booking_option_settings $settings
      * @return string
      */
-    private function get_description_string($isavailable, $full, $settings, $userid = null): string {
+    private function get_description_string($isavailable, $full, $settings): string {
 
         if (
             !$isavailable
@@ -304,28 +342,13 @@ class rebookitbutton implements bo_condition {
             return $desc;
         }
 
-        // In this case, we dont differentiate between availability, because when it blocks...
-        // ... it just means that it can be booked. Blocking has a different functionality here.
-        $description = get_string('bookagain', 'mod_booking');
-
-
-        // Check if multiple bookings are enabled.
-        $ismultipbookingsoptionenable = $settings->jsonobject->multiplebookings ?? 0;
-        if ($ismultipbookingsoptionenable & !empty($userid)) {
-            $answers = singleton_service::get_instance_of_booking_answers($settings)->get_answers();
-            $useranswers = 0;
-            foreach ($answers as $answer) {
-                if ($answer->userid == $userid) {
-                    $useranswers++;
-                }
-            }
-            if ($useranswers == 1) {
-                $description .= get_string('bookedpreviousely', 'mod_booking');
-            } else {
-                $description .= get_string('bookedpreviouselyxtimes', 'mod_booking', $useranswers);
-            }
+        if ($isavailable) {
+            $description = $full ? get_string('bocondpriceissetfullavailable', 'mod_booking') :
+                get_string('bocondpriceissetavailable', 'mod_booking');
+        } else {
+            $description = $full ? get_string('bocondpriceissetfullnotavailable', 'mod_booking') :
+                get_string('bocondpriceissetnotavailable', 'mod_booking');
         }
-
         return $description;
     }
 }
