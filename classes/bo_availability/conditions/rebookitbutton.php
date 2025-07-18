@@ -295,7 +295,6 @@ class rebookitbutton implements bo_condition {
      * @return string
      */
     private function get_description_string($isavailable, $full, $settings, $userid = null): string {
-
         if (
             !$isavailable
             && $this->overwrittenbybillboard
@@ -307,7 +306,6 @@ class rebookitbutton implements bo_condition {
         // In this case, we dont differentiate between availability, because when it blocks...
         // ... it just means that it can be booked. Blocking has a different functionality here.
         $description = get_string('bookagain', 'mod_booking');
-
 
         // Check if multiple bookings are enabled.
         $ismultipbookingsoptionenable = $settings->jsonobject->multiplebookings ?? 0;

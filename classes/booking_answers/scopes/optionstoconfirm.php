@@ -252,12 +252,9 @@ class optionstoconfirm extends option {
      * @return (string|int[])[]
      */
     public function return_sql_for_booked_users(string $scope, int $scopeid, int $statusparam) {
-
         global $USER, $DB;
 
-
         // The where restriction.
-
         $concat = $DB->sql_concat("ctx_ra.path", "'/%'");
 
         // We only show the options if the user has the correct capability 'mod/booking:readresponses'in the course module.
